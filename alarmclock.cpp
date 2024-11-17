@@ -1,3 +1,6 @@
+// alarmclock.cpp
+// Authors: Grant Hillman
+
 #include <LiquidCrystal.h>
 
 struct ClockTime {
