@@ -267,6 +267,8 @@ else if (state == 2)
 
   if (normal.bell == 1){
     digitalWrite(6, HIGH);
+    delay(10 - elaspedTime);
+    normal.bell == 0;
   }
 
 
