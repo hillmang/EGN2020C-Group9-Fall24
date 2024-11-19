@@ -63,6 +63,7 @@ void setup() {
   pinMode(8, INPUT);  // Increment Minutes
   pinMode(7, INPUT);  // Reset
   pinMode(6, OUTPUT); // LED
+  pinMode(LED_PIN, OUTPUT)
 
   // Initialize current button states
   setTime.currentState = digitalRead(13);
@@ -189,7 +190,8 @@ setAlarm.currentState = digitalRead(10);
 incrementHours.currentState = digitalRead(9);
 incrementMinutes.currentState = digitalRead(8);
 reset.currentState = digitalRead(7);
-  
+flashLED(LED_PIN, 500, 5);
+delay(2000);
 if (state == 0) // Time state
 { 
   // Run button checks
@@ -254,7 +256,18 @@ else if (state == 2)
     digitalWrite(6, HIGH);
   }
 
-
+  void flashLED(int pin, int interval, int flashes) {
+    unsigned long startTime = millis(); // Records the start time
+    int count = 0;
+  
+    while (count < flashes) {
+      digitalWrite(pin, HIGH);          // This will trun on LED
+      delay(interval / 2);              // Time interval
+      digitalWrite(pin, LOW);           // Led will trn off
+      delay(interval / 2);            
+      count++;                          
+    }
+  }
   // Update previous button states
   setTime.previousState = setTime.currentState;
   setAlarm.previousState = setAlarm.currentState;
