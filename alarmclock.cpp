@@ -62,6 +62,7 @@ void setup() {
   pinMode(9, INPUT);  // Increment Hours
   pinMode(8, INPUT);  // Increment Minutes
   pinMode(7, INPUT);  // Reset
+  pinMode(6, OUTPUT); // LED
 
   // Initialize current button states
   setTime.currentState = digitalRead(13);
@@ -249,6 +250,9 @@ else if (state == 2)
     }
   }
 
+  if (normal.bell == 1){
+    digitalWrite(6, HIGH);
+  }
 
 
   // Update previous button states
