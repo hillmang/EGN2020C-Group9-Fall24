@@ -49,6 +49,10 @@ void setup() {
   // Initialize alarm time (seconds/milliseconds not used)
   alarm.minutes = 00;
   alarm.hours = 00;
+  alarm.active = 0;
+
+  // Intiailize alarm bell
+  normal.bell = 0;
 
   // Button inputs
   pinMode(13, INPUT); // Set time
@@ -213,6 +217,7 @@ else if (state == 1) // Set time state
 else if (state == 2) 
 {
   // Run button checks, only allow to go back to time state (no set time transition allowed)
+  alarm.active = 1;
   if (fallingEdge(setAlarm)) // Check signal edge of setAlarm button
   { 
     state = 0;               // Switch back to time state
@@ -234,6 +239,15 @@ else if (state == 2)
   if (elapsedTime < 1000) {
     delay(10 - elapsedTime); // Wait for the remainder of 1 second
   }
+
+  // Check to see if the alarm time matches the normal time
+  if (alarm.hours = normal.hours or alarm.hours = 0 or alarm.hours = normal.hours + 1) {
+    if ((alarm.minutes = 0 and normal.minutes = 59) or (alarm.minutes = normal.minutes + 1) and alarm.active = 1) {
+      normal.bell = 1;
+    }
+  }
+
+
 
   // Update previous button states
   setTime.previousState = setTime.currentState;
