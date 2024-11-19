@@ -121,6 +121,19 @@ void displayTime(ClockTime time) {
 
 }
 
+void flashLED(int pin, int interval, int flashes) {
+  unsigned long startTime = millis(); // Records the start time
+  int count = 0;
+  
+  while (count < flashes) {
+    digitalWrite(pin, HIGH);          // This will trun on LED
+    delay(interval / 2);              // Time interval
+    digitalWrite(pin, LOW);           // Led will trn off
+    delay(interval / 2);            
+    count++;                          
+    }
+  }
+
 void incrementTime(ClockTime &time) {
     // Increment seconds
     time.centiseconds++;
@@ -256,18 +269,7 @@ else if (state == 2)
     digitalWrite(6, HIGH);
   }
 
-  void flashLED(int pin, int interval, int flashes) {
-    unsigned long startTime = millis(); // Records the start time
-    int count = 0;
-  
-    while (count < flashes) {
-      digitalWrite(pin, HIGH);          // This will trun on LED
-      delay(interval / 2);              // Time interval
-      digitalWrite(pin, LOW);           // Led will trn off
-      delay(interval / 2);            
-      count++;                          
-    }
-  }
+
   // Update previous button states
   setTime.previousState = setTime.currentState;
   setAlarm.previousState = setAlarm.currentState;
