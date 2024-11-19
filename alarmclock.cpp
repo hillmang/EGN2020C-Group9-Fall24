@@ -9,6 +9,8 @@ struct ClockTime {
   int seconds;
   int minutes;
   int hours;
+  int bell;
+  int active;
 };
 
 struct PushButton {
@@ -241,9 +243,9 @@ else if (state == 2)
   }
 
   // Check to see if the alarm time matches the normal time
-  if (alarm.hours = normal.hours or alarm.hours = 0 or alarm.hours = normal.hours + 1) {
-    if ((alarm.minutes = 0 and normal.minutes = 59) or (alarm.minutes = normal.minutes + 1) and alarm.active = 1) {
-      normal.bell = 1;
+  if (alarm.hours == normal.hours or alarm.hours == 0 or alarm.hours == normal.hours + 1) {
+    if ((alarm.minutes == 0 and normal.minutes == 59) or (alarm.minutes == normal.minutes + 1) and alarm.active == 1) {
+      normal.bell == 1;
     }
   }
 
