@@ -5,9 +5,10 @@
 
 struct ClockTime {
   // Clock time
-  int centiseconds;
+  int deciseconds;
   int seconds;
   int minutes;
+  int closeBlindsHour;
   int hours;
   int bell;
   int active;
@@ -23,7 +24,7 @@ struct PushButton {
 ClockTime normal, alarm;
 
 // Create Push Buttons
-PushButton setTime, setAlarm, incrementHours, incrementMinutes, reset;
+PushButton setTime, setAlarm, incrementHours, incrementMinutes, snooze;
 
 // Create LCD object
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
@@ -31,11 +32,15 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 // state = 0: time, state = 1: set time, state = 2: set alarm
 int state;
 
+// State of blinds (0 closed, 1 open)
+int open;
+
 // Measure how long loop takes to complete
 unsigned long loopStartTime;
 
 
 void setup() {
+  open = 0;
   // LCD display
   lcd.begin(16, 2);   // Set up the number of columns and rows on the LCD
 
@@ -43,12 +48,13 @@ void setup() {
   state = 0;
 
   // Initialize normal time
-  normal.centiseconds = 00;
+  normal.deciseconds = 00;
   normal.seconds = 00;
   normal.minutes = 00;
   normal.hours = 00;
 
   // Initialize alarm time (seconds/milliseconds not used)
+  alarm.seconds = 00;
   alarm.minutes = 00;
   alarm.hours = 00;
   alarm.active = 0;
@@ -61,23 +67,24 @@ void setup() {
   pinMode(10, INPUT); // Set alarm
   pinMode(9, INPUT);  // Increment Hours
   pinMode(8, INPUT);  // Increment Minutes
-  pinMode(7, INPUT);  // Reset
-  pinMode(6, OUTPUT); // LED
-  pinMode(LED_PIN, OUTPUT)
+  pinMode(7, INPUT);  // Snooze
+  pinMode(6, OUTPUT); // Motor
+  pinMode(1, OUTPUT); // Buzzer
+  pinMode(0, OUTPUT); // DC Motor
 
   // Initialize current button states
   setTime.currentState = digitalRead(13);
   setAlarm.currentState = digitalRead(10);
   incrementHours.currentState = digitalRead(9);
   incrementMinutes.currentState = digitalRead(8);
-  reset.currentState = digitalRead(7);
+  snooze.currentState = digitalRead(7);
 
   // Initialize previous button states
   setTime.previousState = 0;
   setAlarm.previousState = 0;
   incrementHours.previousState = 0;
   incrementMinutes.previousState = 0;
-  reset.previousState = 0;
+  snooze.previousState = 0;
 
   // Set the cursor position for each alarm clock value
   lcd.setCursor(6, 1);    
@@ -121,24 +128,27 @@ void displayTime(ClockTime time) {
 
 }
 
-void flashLED(int pin, int interval, int flashes) {
+unsigned long flashLED(int pin, int lightState) {
   unsigned long startTime = millis(); // Records the start time
-  int count = 0;
   
-  while (count < flashes) {
-    digitalWrite(pin, HIGH);          // This will trun on LED
-    delay(interval / 2);              // Time interval
-    digitalWrite(pin, LOW);           // Led will trn off
-    delay(interval / 2);            
-    count++;                          
-    }
+  // while (count < flashes) {
+  //   digitalWrite(pin, HIGH);          // This will trun on LED
+  //   delay(interval / 2);              // Time interval
+  //   digitalWrite(pin, LOW);           // Led will trn off
+  //   delay(interval / 2);            
+  //   count++;                          
+  //   }
+  digitalWrite(pin, lightState);          // This will toggle LED
+  // lightState = !lightState;
+  return startTime;
+
   }
 
 void incrementTime(ClockTime &time) {
     // Increment seconds
-    time.centiseconds++;
-    if (time.centiseconds >= 100) {
-      time.centiseconds = 0;
+    time.deciseconds++;
+    if (time.deciseconds >= 10) {
+      time.deciseconds = 0;
       time.seconds++;
       if (time.seconds >= 60) {
           time.seconds = 00;
@@ -192,19 +202,49 @@ void buttonIncrementTime(PushButton hoursButton, PushButton minutesButton, Clock
   }
 }
 
+void resetLCD() {
+  lcd.clear();
+  lcd.begin(16, 2); // Reinitialize with the same configuration
+}
+
+
+void openBlinds (int pin) {
+  lcd.setCursor(0, 1);
+  lcd.print("Opening Blinds...");
+
+  analogWrite(pin, 150);
+  delay(1000);
+  analogWrite(pin, 0);
+  delay(1000);
+  resetLCD();
+  normal.seconds = normal.seconds + 2;
+}
+
+void closeBlinds(int pin) {
+  lcd.setCursor(0, 1);
+  lcd.print("Closing Blinds...");
+
+  analogWrite(pin, 150);
+  delay(1000);
+  analogWrite(pin, 0);
+  delay(1000);
+  resetLCD();
+  normal.seconds = normal.seconds + 2;
+}
+
 
 void loop() {
 
-loopStartTime = millis(); // Record the start time of the loop
+unsigned long currentMillis = millis();
+static unsigned long lastUpdate = 0;
 
 // Update button states
 setTime.currentState = digitalRead(13);
 setAlarm.currentState = digitalRead(10);
 incrementHours.currentState = digitalRead(9);
 incrementMinutes.currentState = digitalRead(8);
-reset.currentState = digitalRead(7);
-flashLED(LED_PIN, 500, 5);
-delay(2000);
+snooze.currentState = digitalRead(7);
+
 if (state == 0) // Time state
 { 
   // Run button checks
@@ -217,7 +257,41 @@ if (state == 0) // Time state
     state = 2;                    // Switch to set alarm state
   }
 
-  incrementTime(normal);
+  // Check to see if the alarm time matches the normal time
+  if (alarm.active && alarm.hours == normal.hours && alarm.minutes == normal.minutes && alarm.seconds == normal.seconds) {
+    normal.bell = 1;
+  }
+
+  else if (fallingEdge(snooze)) {
+    normal.bell = 0;
+    digitalWrite(6, LOW);
+    digitalWrite(1, LOW);
+  }
+
+  else if (normal.bell == 1) {
+    digitalWrite(6, HIGH);
+    digitalWrite(1, LOW);
+    if (open == 0) {
+      openBlinds(0);
+      open = 1;
+      normal.closeBlindsHour = normal.hours + 12;
+
+    }
+  }
+
+  else if (open == 1 && normal.closeBlindsHour == normal.hours) {
+    closeBlinds(0);
+    open = 0;
+  }
+
+  else {
+    digitalWrite(6, LOW);
+    digitalWrite(1, LOW);   
+  }
+
+  
+    incrementTime(normal); // Update the normal clock
+
 } 
 
 else if (state == 1) // Set time state
@@ -234,8 +308,7 @@ else if (state == 1) // Set time state
 
 else if (state == 2) 
 {
-  // Run button checks, only allow to go back to time state (no set time transition allowed)
-  alarm.active = 1;
+
   if (fallingEdge(setAlarm)) // Check signal edge of setAlarm button
   { 
     state = 0;               // Switch back to time state
@@ -243,6 +316,7 @@ else if (state == 2)
 
   // Run button time incremenation
   buttonIncrementTime(incrementHours, incrementMinutes, alarm);
+  alarm.active = 1;
 }
 
   if (state != 2) {
@@ -252,29 +326,10 @@ else if (state == 2)
   displayTime(alarm);
   }
 
-  // Calculate elapsed time and adjust delay
-  unsigned long elapsedTime = millis() - loopStartTime;
-  if (elapsedTime < 1000) {
-    delay(10 - elapsedTime); // Wait for the remainder of 1 second
-  }
-
-  // Check to see if the alarm time matches the normal time
-  if (alarm.hours == normal.hours or alarm.hours == 0 or alarm.hours == normal.hours + 1) {
-    if ((alarm.minutes == 0 and normal.minutes == 59) or (alarm.minutes == normal.minutes + 1) and alarm.active == 1) {
-      normal.bell == 1;
-    }
-  }
-
-  if (normal.bell == 1){
-    digitalWrite(6, HIGH);
-    delay(10 - elaspedTime);
-    normal.bell == 0;
-  }
-
-
   // Update previous button states
   setTime.previousState = setTime.currentState;
   setAlarm.previousState = setAlarm.currentState;
   incrementHours.previousState = incrementHours.currentState;
   incrementMinutes.previousState = incrementMinutes.currentState;
+  snooze.previousState = snooze.currentState;
 }
