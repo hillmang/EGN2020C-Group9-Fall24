@@ -1,5 +1,5 @@
 // alarmclock.cpp
-// Authors: Grant Hillman
+// Authors: Grant Hillman, Jonas Dickens, Madhurishitha Boddu, Maxwell Evans
 
 #include <LiquidCrystal.h>
 
@@ -270,7 +270,7 @@ if (state == 0) // Time state
 
   else if (normal.bell == 1) {
     digitalWrite(6, HIGH);
-    digitalWrite(1, LOW);
+    digitalWrite(1, HIGH);
     if (open == 0) {
       openBlinds(0);
       open = 1;
@@ -289,8 +289,8 @@ if (state == 0) // Time state
     digitalWrite(1, LOW);   
   }
 
-  
-    incrementTime(normal); // Update the normal clock
+incrementTime(normal); // Update the normal clock
+delay(1);
 
 } 
 
