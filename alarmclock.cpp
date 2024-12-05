@@ -1,4 +1,6 @@
 // alarmclock.cpp
+// Basic alarm clock state machine intended for an Arduino UNO.
+
 // Authors: Grant Hillman, Jonas Dickens, Madhurishitha Boddu, Maxwell Evans
 
 #include <LiquidCrystal.h>
@@ -35,10 +37,7 @@ int state;
 // State of blinds (0 closed, 1 open)
 int open;
 
-// Measure how long loop takes to complete
-unsigned long loopStartTime;
-
-
+// Arduino setup function
 void setup() {
   open = 0;
   // LCD display
@@ -102,6 +101,7 @@ void setup() {
   
 }
 
+// Function for displaying time. Takes time structure (normal or alarm time)
 void displayTime(ClockTime time) {
   // Set the cursor position for each alarm clock value
   lcd.setCursor(6, 1);
@@ -128,115 +128,118 @@ void displayTime(ClockTime time) {
 
 }
 
+// Function for flashing an LED. Not included to decrease delay
 unsigned long flashLED(int pin, int lightState) {
   unsigned long startTime = millis(); // Records the start time
   
-  // while (count < flashes) {
-  //   digitalWrite(pin, HIGH);          // This will trun on LED
-  //   delay(interval / 2);              // Time interval
-  //   digitalWrite(pin, LOW);           // Led will trn off
-  //   delay(interval / 2);            
-  //   count++;                          
-  //   }
+  while (count < flashes) {
+    digitalWrite(pin, HIGH);          // This will trun on LED
+    delay(interval / 2);              // Time interval
+    digitalWrite(pin, LOW);           // Led will trn off
+    delay(interval / 2);            
+    count++;                          
+    }
   digitalWrite(pin, lightState);          // This will toggle LED
   // lightState = !lightState;
   return startTime;
 
   }
 
+// Function for incrementing time
+// Increments in deciseconds for the alarm clock to be more responsive to button input (less delay in main loop)
 void incrementTime(ClockTime &time) {
-    // Increment seconds
-    time.deciseconds++;
+    time.deciseconds++;           // Increment deciseconds
     if (time.deciseconds >= 10) {
       time.deciseconds = 0;
-      time.seconds++;
+      time.seconds++;             // Increment seconds
       if (time.seconds >= 60) {
           time.seconds = 00;
             lcd.setCursor(6, 1);    
-            lcd.print("00"); 
-          time.minutes++;
+            lcd.print("00");      // Clear LCD seconds
+          time.minutes++;         // Increment minutes
           if (time.minutes >= 60) {
               time.minutes = 00;
               lcd.setCursor(3, 1);       
-              lcd.print("00");
-              time.hours++;
+              lcd.print("00");    // Clear LCD minutes
+              time.hours++;       // Increment hours
               if (time.hours >= 24) {
                   time.hours = 00;
                   lcd.setCursor(0, 1);       
-                  lcd.print("00");
+                  lcd.print("00"); // Clear LCD hours
               }
           }
       }
     }
 }
 
+// Function for detecting the falling edge of button input (1 to 0 transition). Detects button presses
 bool fallingEdge(PushButton button) {
-  if ((button.currentState == 0) && (button.previousState == 1)) {
+  if ((button.currentState == 0) && (button.previousState == 1)) { // Return true if 1 to 0 transition
     return true;
   }
-  return false;
+  return false;                                                    // Return false otherwise (no button press)
 }
 
+// Function for incrementing hours or minutes with respective buttons. Uses falling edge detetction for buttons
 void buttonIncrementTime(PushButton hoursButton, PushButton minutesButton, ClockTime &time) {
   // Run button time incremenation
-  if (fallingEdge(hoursButton)) 
+  if (fallingEdge(hoursButton))   // Hours button press
   {
-    if (time.hours == 24) 
+    if (time.hours == 24)         // Reset hours after reaching 24
     {
       time.hours = 0;
     }
     else {
-      time.hours++;
+      time.hours++;               // Increment hours
     }
   }
 
-  if (fallingEdge(minutesButton)) 
+  if (fallingEdge(minutesButton)) // Minutes button press
   {
-    if (time.minutes == 60) 
+    if (time.minutes == 60)       // Reset minutes after reaching 60
     {
-      time.minutes = 0;
+      time.minutes = 0;         
     }
     else {
-      time.minutes++;
+      time.minutes++;             // Increment minutes
     }
   }
 }
 
+// Function for resetting LCD
 void resetLCD() {
-  lcd.clear();
+  lcd.clear();      // Clear LCD
   lcd.begin(16, 2); // Reinitialize with the same configuration
 }
 
-
+// Function for opening blinds
 void openBlinds (int pin) {
   lcd.setCursor(0, 1);
-  lcd.print("Opening Blinds...");
+  lcd.print("Opening Blinds...");       // Display blinds are being open
 
-  analogWrite(pin, 150);
+  analogWrite(pin, 150);                // Turn on motor
   delay(1000);
-  analogWrite(pin, 0);
+  analogWrite(pin, 0);                  // Turn off motor
   delay(1000);
-  resetLCD();
-  normal.seconds = normal.seconds + 2;
+  resetLCD();                           // Reset LCD
+  normal.seconds = normal.seconds + 2;  // Increment seconds to account for the delay while turning the motor
 }
 
+// Function for closing blinds
 void closeBlinds(int pin) {
   lcd.setCursor(0, 1);
-  lcd.print("Closing Blinds...");
+  lcd.print("Closing Blinds...");       // Display blinds are being closed
 
-  analogWrite(pin, 150);
+  analogWrite(pin, 150);                // Turn on motor
   delay(1000);
-  analogWrite(pin, 0);
+  analogWrite(pin, 0);                  // Turn off motor
   delay(1000);
-  resetLCD();
-  normal.seconds = normal.seconds + 2;
+  resetLCD();                           // Reset LCD
+  normal.seconds = normal.seconds + 2;  // Increment seconds to account for the delay while turning the motor
 }
 
-
+// Main loop function
 void loop() {
-
-unsigned long currentMillis = millis();
-static unsigned long lastUpdate = 0;
 
 // Update button states
 setTime.currentState = digitalRead(13);
@@ -245,7 +248,8 @@ incrementHours.currentState = digitalRead(9);
 incrementMinutes.currentState = digitalRead(8);
 snooze.currentState = digitalRead(7);
 
-if (state == 0) // Time state
+// Time state
+if (state == 0)
 { 
   // Run button checks
   if (fallingEdge(setTime)) // Check signal edge of setTime button
@@ -259,42 +263,47 @@ if (state == 0) // Time state
 
   // Check to see if the alarm time matches the normal time
   if (alarm.active && alarm.hours == normal.hours && alarm.minutes == normal.minutes && alarm.seconds == normal.seconds) {
-    normal.bell = 1;
+    normal.bell = 1; // Set the alarm on
   }
 
+  // Check if snooze button is pressed
   else if (fallingEdge(snooze)) {
-    normal.bell = 0;
-    digitalWrite(6, LOW);
-    digitalWrite(1, LOW);
+    normal.bell = 0;      // Set alarm off
+    digitalWrite(6, LOW); // Turn off LED
+    digitalWrite(1, LOW); // Turn off buzzer
   }
 
+  // Check if alarm is on
   else if (normal.bell == 1) {
-    digitalWrite(6, HIGH);
-    digitalWrite(1, HIGH);
-    if (open == 0) {
+    digitalWrite(6, HIGH); // Turn on LED
+    digitalWrite(1, HIGH); // Turn on buzzer
+    if (open == 0) {       // Open blinds (if blinds are closed)
       openBlinds(0);
-      open = 1;
-      normal.closeBlindsHour = normal.hours + 12;
+      open = 1;            // Set blinds open
+      normal.closeBlindsHour = normal.hours + 12; // Set blinds closing time 12 hours later than current time
 
     }
   }
-
-  else if (open == 1 && normal.closeBlindsHour == normal.hours) {
+  
+  // Close blinds if closed and if blinds closing time is reached
+  else if (open == 1 && normal.closeBlindsHour == normal.hours) { 
     closeBlinds(0);
-    open = 0;
+    open = 0;             // Set blinds closed
   }
 
+  // Set LED and buzzer off
   else {
     digitalWrite(6, LOW);
     digitalWrite(1, LOW);   
   }
 
 incrementTime(normal); // Update the normal clock
-delay(1);
+delay(100);            // Delay 100 ms (time of decisecond). Allows seconds to increment in real time
 
 } 
 
-else if (state == 1) // Set time state
+// Set time state
+else if (state == 1) 
 {
   // Run button checks, only allow to go back to time state (no set alarm transition allowed)
   if (fallingEdge(setTime)) // Check signal edge of setTime button
@@ -306,6 +315,7 @@ else if (state == 1) // Set time state
   buttonIncrementTime(incrementHours, incrementMinutes, normal);
 }
 
+// Set Alarm state
 else if (state == 2) 
 {
 
@@ -316,9 +326,9 @@ else if (state == 2)
 
   // Run button time incremenation
   buttonIncrementTime(incrementHours, incrementMinutes, alarm);
-  alarm.active = 1;
+  alarm.active = 1; // Set alarm active
 }
-
+  // Display alarm time in alarm state, otherwise display normal time
   if (state != 2) {
   displayTime(normal);
   }
