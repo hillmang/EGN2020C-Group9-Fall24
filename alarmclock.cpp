@@ -129,21 +129,20 @@ void displayTime(ClockTime time) {
 }
 
 // Function for flashing an LED. Not included to decrease delay
-unsigned long flashLED(int pin, int lightState) {
-  unsigned long startTime = millis(); // Records the start time
+// unsigned long flashLED(int pin, int lightState) {
+//   unsigned long startTime = millis(); // Records the start time
   
-  while (count < flashes) {
-    digitalWrite(pin, HIGH);          // This will trun on LED
-    delay(interval / 2);              // Time interval
-    digitalWrite(pin, LOW);           // Led will trn off
-    delay(interval / 2);            
-    count++;                          
-    }
-  digitalWrite(pin, lightState);          // This will toggle LED
-  // lightState = !lightState;
-  return startTime;
-
-  }
+//   while (count < flashes) {
+//     digitalWrite(pin, HIGH);          // This will trun on LED
+//     delay(interval / 2);              // Time interval
+//     digitalWrite(pin, LOW);           // Led will trn off
+//     delay(interval / 2);            
+//     count++;                          
+//     }
+//   digitalWrite(pin, lightState);          // This will toggle LED
+//   // lightState = !lightState;
+//   return startTime;
+//   }
 
 // Function for incrementing time
 // Increments in deciseconds for the alarm clock to be more responsive to button input (less delay in main loop)
